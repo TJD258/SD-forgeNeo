@@ -842,6 +842,8 @@ def split_state_dict(path: os.PathLike, additional_state_dicts: list[os.PathLike
     state_dict = {guess.unet_target: try_filter_state_dict(sd, guess.unet_key_prefix), guess.vae_target: try_filter_state_dict(sd, guess.vae_key_prefix)}
 
     sd = guess.process_clip_state_dict(sd)
+    print(f"[DEBUG] After process_clip_state_dict, sd keys sample: {list(sd.keys())[:10]}")
+    print(f"[DEBUG] clip_target: {guess.clip_target}")
 
     for k, v in guess.clip_target.items():
         state_dict[v] = try_filter_state_dict(sd, [k + "."])

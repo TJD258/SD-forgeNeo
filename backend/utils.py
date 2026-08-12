@@ -64,6 +64,38 @@ def load_torch_file(ckpt: str, *, safe_load=True, device=None, return_metadata=F
     metadata = None
 
     if ckpt.lower().endswith((".safetensors", ".sft")):
+        # 支持分体 safetensors 文件
+        index_path = ckpt + ".index.json"
+        if not os.path.isfile(index_path):
+            ckpt_dir = os.path.dirname(ckpt)
+            for idx_file in ["model.safetensors.index.json", "pytorch_model.bin.index.json"]:
+                if os.path.isfile(os.path.join(ckpt_dir, idx_file)):
+                    index_path = os.path.join(ckpt_dir, idx_file)
+                    break
+        
+        if os.path.isfile(index_path):
+            with open(index_path, "r") as f:
+                index_data = json.load(f)
+            weight_map = index_data.get("weight_map", {})
+            unique_files = sorted(set(weight_map.values()))
+            sd = {}
+            ckpt_dir = os.path.dirname(index_path)
+            meta = {}
+            for shard_file in unique_files:
+                shard_path = os.path.join(ckpt_dir, shard_file)
+                if os.path.isfile(shard_path):
+                    with safetensors.safe_open(shard_path, framework="pt", device=device.type) as f:
+                        for k in f.keys():
+                            tensor = f.get_tensor(k)
+                            if DISABLE_MMAP:
+                                tensor = tensor.to(device=device, copy=True)
+                            sd[k] = tensor
+                        if return_metadata:
+                            shard_meta = f.metadata()
+                            if shard_meta:
+                                meta.update(shard_meta)
+            return (sd, meta) if return_metadata else sd
+        
         try:
             with safetensors.safe_open(ckpt, framework="pt", device=device.type) as f:
                 sd = {}

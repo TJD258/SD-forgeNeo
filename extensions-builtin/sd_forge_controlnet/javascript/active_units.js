@@ -108,7 +108,19 @@
 
     onUiLoaded(() => {
         for (const tab of ["txt2img", "img2img"]) {
-            const ext = document.getElementById(`${tab}_controlnet`).querySelector("#controlnet");
+            const tabElement = document.getElementById(`${tab}_controlnet`);
+            
+            if (!tabElement) {
+                console.warn(`ControlNet: ${tab}_controlnet element not found, skipping...`);
+                continue;
+            }
+            
+            const ext = tabElement.querySelector("#controlnet");
+            
+            if (!ext) {
+                console.warn(`ControlNet: #controlnet element not found in ${tab}_controlnet, skipping...`);
+                continue;
+            }
 
             if (AllControlnet.has(ext)) return;
             AllControlnet.add(ext);

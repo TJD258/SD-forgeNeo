@@ -77,9 +77,8 @@ def detect_unet_config(state_dict: dict, key_prefix: str) -> dict:
 
         return dit_config
 
-    if "{}head.modulation".format(key_prefix) in state_dict_keys:  # Wan 2.1
+    if "{}head.modulation".format(key_prefix) in state_dict_keys:  # Wan 2.1 / Wan 2.2
         dit_config = {}
-        dit_config["image_model"] = "wan2.1"
         dim = int(state_dict["{}head.modulation".format(key_prefix)].shape[-1])
         out_dim = int(state_dict["{}head.head.weight".format(key_prefix)].shape[0]) // 4
         dit_config["dim"] = int(dim)
@@ -101,6 +100,14 @@ def detect_unet_config(state_dict: dict, key_prefix: str) -> dict:
         flf_weight = state_dict.get("{}img_emb.emb_pos".format(key_prefix))
         if flf_weight is not None:
             dit_config["flf_pos_embed_token_number"] = int(flf_weight.shape[1])
+
+        # Detect Wan 2.2 by checking for second transformer blocks (MoE two-stage denoising)
+        if "{}blocks2.0.ffn.0.weight".format(key_prefix) in state_dict_keys:
+            dit_config["image_model"] = "wan2.2"
+            dit_config["num_layers2"] = count_blocks(state_dict_keys, "{}blocks2.".format(key_prefix) + "{}.")
+        else:
+            dit_config["image_model"] = "wan2.1"
+
         return dit_config
 
     if "{}single_transformer_blocks.0.mlp_fc1.qweight".format(key_prefix) in state_dict_keys:  # SVDQ Flux
@@ -231,11 +238,17 @@ def detect_unet_config(state_dict: dict, key_prefix: str) -> dict:
             dit_config["lq_interval"] = (14 + num_gates - 1) // num_gates
         return dit_config
 
-    if "{}txt_norm.weight".format(key_prefix) in state_dict_keys:  # Qwen Image
+    if "{}txt_norm.weight".format(key_prefix) in state_dict_keys:  # Qwen Image (single-file)
         _qweight: bool = "{}transformer_blocks.0.attn.to_qkv.qweight".format(key_prefix) in state_dict_keys
         dit_config = {"nunchaku": _qweight}
         dit_config["image_model"] = "qwen_image"
         dit_config["in_channels"] = int(state_dict["{}img_in.weight".format(key_prefix)].shape[1])
+        dit_config["num_layers"] = count_blocks(state_dict_keys, "{}transformer_blocks.".format(key_prefix) + "{}.")
+        return dit_config
+    
+    # Qwen Image (diffusers format) - detect by transformer_blocks with attn.to_k
+    if "{}transformer_blocks.44.attn.to_k.weight".format(key_prefix) in state_dict_keys:
+        dit_config = {"image_model": "qwen_image"}
         dit_config["num_layers"] = count_blocks(state_dict_keys, "{}transformer_blocks.".format(key_prefix) + "{}.")
         return dit_config
 

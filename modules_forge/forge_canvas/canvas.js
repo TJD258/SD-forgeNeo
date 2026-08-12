@@ -92,6 +92,26 @@ class ForgeCanvas {
         this.foreground_gradio_bind = new GradioTextAreaBind(this.uuid, "logical_image_foreground");
         this.init();
 
+        // Add ResizeObserver to handle container size changes
+        const self = this;
+        this.resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.target.id === `container_${self.uuid}`) {
+                    if (self.img) {
+                        self.adjustInitialPositionAndScale();
+                        self.drawImage();
+                    }
+                }
+            }
+        });
+        
+        setTimeout(() => {
+            const container = document.getElementById(`container_${this.uuid}`);
+            if (container) {
+                self.resizeObserver.observe(container);
+            }
+        }, 1000);
+
         this._held_W = false;
         this._held_A = false;
         this._held_S = false;
@@ -513,9 +533,20 @@ class ForgeCanvas {
     handleDraw(e) {
         const canvas = this.drawingCanvas_;
         const ctx = canvas.getContext("2d");
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / this.imgScale;
-        const y = (e.clientY - rect.top) / this.imgScale;
+        const container = document.getElementById(`container_${this.uuid}`);
+        const containerRect = container.getBoundingClientRect();
+        
+        // Calculate mouse position relative to container
+        const mouseX = e.clientX - containerRect.left;
+        const mouseY = e.clientY - containerRect.top;
+        
+        // Subtract image offset to get position relative to image
+        const imageX = mouseX - this.imgX;
+        const imageY = mouseY - this.imgY;
+        
+        // Scale to original image coordinates
+        const x = imageX / this.imgScale;
+        const y = imageY / this.imgScale;
 
         this.temp_draw_points.push([x, y]);
         ctx.putImageData(this.temp_draw_bg, 0, 0);
@@ -679,11 +710,13 @@ class ForgeCanvas {
             image.style.height = `${scaledHeight}px`;
             image.style.left = `${this.imgX}px`;
             image.style.top = `${this.imgY}px`;
+            image.style.position = "absolute";
             image.style.display = "block";
             drawingCanvas.style.width = `${scaledWidth}px`;
             drawingCanvas.style.height = `${scaledHeight}px`;
             drawingCanvas.style.left = `${this.imgX}px`;
             drawingCanvas.style.top = `${this.imgY}px`;
+
         } else {
             image.src = "";
             image.style.display = "none";
@@ -692,6 +725,7 @@ class ForgeCanvas {
 
     adjustInitialPositionAndScale() {
         const container = document.getElementById(`container_${this.uuid}`);
+        if (!container) return;
         const containerWidth = container.clientWidth - 20;
         const containerHeight = container.clientHeight - 20;
         const scaleX = containerWidth / this.orgWidth;

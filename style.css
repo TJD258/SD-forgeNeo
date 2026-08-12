@@ -1832,3 +1832,43 @@ div.xyz_entries button.secondary {
 #swap_axes button {
     border-radius: 8px;
 }
+
+/* Forge Canvas fixes for Gradio 4.40 */
+.forge-container {
+    width: 100% !important;
+    height: 512px !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.forge-image-container {
+    width: 100% !important;
+    height: calc(100% - 6px) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+#drawingCanvas_0,
+#drawingCanvas_1,
+#drawingCanvas_2 {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+}
+
+.gradio-canvas {
+    width: 100% !important;
+}
+
+/* Fix inpaint layout */
+#img2img_inpaint_tab .gradio-canvas,
+#inpaint_tab .gradio-canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* Fix splitpanes issues */
+.splitpanes.default-theme .splitpanes__pane {
+    min-width: 0 !important;
+    min-height: 0 !important;
+}

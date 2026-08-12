@@ -531,6 +531,48 @@ class WAN21_I2V(WAN21_T2V):
     }
 
 
+class WAN22_T2V(BASE):
+    huggingface_repo = "Wan-AI/Wan2.2-T2V-A14B"
+
+    unet_config = {
+        "image_model": "wan2.2",
+        "model_type": "t2v",
+    }
+
+    sampling_settings = {
+        "shift": 8.0,
+    }
+
+    unet_extra_config = {}
+    latent_format = latent.Wan21
+
+    memory_usage_factor = 1.2  # Wan2.2 MoE needs more VRAM
+
+    supported_inference_dtypes = [torch.bfloat16, torch.float32]
+
+    vae_key_prefix = ["vae."]
+    text_encoder_key_prefix = ["text_encoders."]
+
+    unet_target = "transformer"
+
+    def __init__(self, unet_config):
+        super().__init__(unet_config)
+        self.memory_usage_factor = self.unet_config.get("dim", 2000) / 2000 * 1.2
+
+    def clip_target(self, state_dict: dict):
+        return {"umt5xxl": "text_encoder"}
+
+
+class WAN22_I2V(WAN22_T2V):
+    huggingface_repo = "Wan-AI/Wan2.2-I2V-A14B"
+
+    unet_config = {
+        "image_model": "wan2.2",
+        "model_type": "i2v",
+        "in_dim": 36,
+    }
+
+
 class QwenImage(BASE):
     huggingface_repo = "Qwen/Qwen-Image"
 
@@ -640,6 +682,8 @@ models = [
     Anima,
     WAN21_T2V,
     WAN21_I2V,
+    WAN22_T2V,
+    WAN22_I2V,
     QwenImage,
     ErnieImage,
     PiD,

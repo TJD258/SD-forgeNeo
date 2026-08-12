@@ -18,7 +18,7 @@ refiner_shift: float = None
 
 
 class Wan(ForgeDiffusionEngine):
-    matched_guesses = [model_list.WAN21_T2V, model_list.WAN21_I2V]
+    matched_guesses = [model_list.WAN21_T2V, model_list.WAN21_I2V, model_list.WAN22_T2V, model_list.WAN22_I2V]
 
     def __init__(self, estimated_config, huggingface_components):
         super().__init__(estimated_config, huggingface_components)
@@ -154,25 +154,29 @@ class Wan(ForgeDiffusionEngine):
         x = x.mul(0.5).add(0.5)
 
         if dynamic_args.is_referencing:
+            # Image Stitch mode
             if b == 1:
-                # FirstLastFrameToVideo
+                # Single reference: set as end frame (FirstLastFrameToVideo or LastFrameToVideo)
                 self.end_image = x.cpu()
-                assert self.forge_objects.unet.model.diffusion_model.in_dim == 36
-                return
             else:
-                # LastFrameToVideo
-                self.end_image = x.cpu()
-                assert self.forge_objects.unet.model.diffusion_model.in_dim == 36
+                # Multiple frames: first is start frame (FirstFrameToVideo)
+                self.start_image = x.cpu()
+            assert self.forge_objects.unet.model.diffusion_model.in_dim == 36
+            # Must call image_to_video to set concat_latent
+            latent = torch.zeros([1, 16, ((b - 1) // 4) + 1, h // 8, w // 8], device=self.forge_objects.vae.device)
+            self.image_to_video(b, list(latent.shape))
+            sample = self.forge_objects.vae.first_stage_model.process_in(latent)
+            return sample.to(x)
 
         else:
             if b == 1:
-                # img2img
+                # img2img (T2V only)
                 sample = self.forge_objects.vae.encode(x.movedim(1, -1))
                 sample = self.forge_objects.vae.first_stage_model.process_in(sample)
                 assert self.forge_objects.unet.model.diffusion_model.in_dim == 16
                 return sample.to(x)
             else:
-                # FirstFrameToVideo
+                # FirstFrameToVideo (txt2img without Image Stitch)
                 self.start_image = x.cpu()
                 assert self.forge_objects.unet.model.diffusion_model.in_dim == 36
 

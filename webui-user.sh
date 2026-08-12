@@ -4,7 +4,7 @@
 # export GIT=
 # export VENV_DIR=
 
-# export TORCH_COMMAND="pip install torch==2.12.0 torchvision==0.27.0"
+# export TORCH_COMMAND="pip install torch==2.1.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu121"
 
 export COMMANDLINE_ARGS="--uv"
 
