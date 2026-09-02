@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH="/mnt/workspace/ffmpeg/ffmpeg-7.0.2-amd64-static:$PATH"
 ########################################
 # SD Forge ModelScope 启动脚本 (优化版)
 # 使用国内镜像下载 cloudflared
@@ -80,7 +81,8 @@ echo "启动 SD Forge (高性能模式)..."
 echo ""
 
 # 启动 SD Forge (后台)
-$PYTHON launch.py --listen --port 7860 --skip-python-version-check --disable-xformers --highvram --theme dark &
+# $PYTHON launch.py --listen --port 7860 --skip-python-version-check --disable-xformers --highvram --theme dark &
+$PYTHON launch.py --listen --port 7860 --skip-python-version-check --disable-xformers --highvram --theme dark --enable-insecure-extension-access &
 SD_FORGE_PID=$!
 
 echo "等待 SD Forge 启动 (30秒)..."
